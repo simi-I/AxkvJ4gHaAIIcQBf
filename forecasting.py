@@ -39,16 +39,21 @@ def arma_model(df_train, df_test):
     print(cl("\nMoving Average Model Training and Testing\n", attrs=['bold']))
     
     model_name = 'ARMA Model'
-    arma_model = ARIMA(df_train['Price'], order=(0,1,7))
-    results = arma_model.fit()
-    print(results.summary())
+    history = [x for x in df_train['Price']]
     
-    # prediction date
-    start_date = df_test.index.min()
-    end_date   = df_test.index.max()
+    predictions = []
 
-    # prediction and confidence interval using the model
-    forecast = results.predict(start=start_date, end=end_date)
+    for i in range(len(df_test)):
+        model = ARIMA(history, order=(0,1,7))
+        model_fit = model.fit()
+        output = model_fit.forecast()
+        yhat = output[0]
+        predictions.append(yhat)
+        obs = df_test['Price'][i]
+        history.append(obs)
+    
+    forecast = pd.Series(predictions, index=df_test.index)
+    
     
     #Data Plot
     plt.plot(df_train['Price'], label='Train')
@@ -56,8 +61,9 @@ def arma_model(df_train, df_test):
     plt.plot(forecast, label='Predicted')
     plt.xlabel("Date", size=10)
     plt.ylabel("Price", size=10)
+    plt.ylim(bottom=0)
     plt.legend()
-    plt.title('Train, Test and Predicted data points using ARIMA', size=20)
+    plt.title('Train, Test and Predicted data points using ARMA', size=20)
     plt.show()
     
     model_accuracy = forecast_accuracy(forecast, df_test.Price, model_name)
@@ -66,7 +72,6 @@ def arma_model(df_train, df_test):
     
     
 #ARIMA Model
-
 def arima_model(df_train, df_test):
     
     print(cl("\nARIMA Model Training and Testing\n", attrs=['bold']))
@@ -85,12 +90,16 @@ def arima_model(df_train, df_test):
     # diagnostic plots of best model
     arima_model.plot_diagnostics()
     plt.show()
-    
-    # prediction size
-    n = df_test.shape[0]
 
-    # prediction and confidence interval using the model
-    forecast = arima_model.predict(n_periods=n)
+    # prediction using the model
+    prediction = []
+    
+    for i in df_test['Price']:
+        predict = arima_model.predict(n_periods=1)[0]
+        prediction.append(predict)
+        arima_model.update(i)
+    
+    forecast = pd.Series(prediction, index=df_test.index)
     
     #Data Plot
     plt.plot(df_train['Price'], label='Train')
@@ -98,6 +107,7 @@ def arima_model(df_train, df_test):
     plt.plot(forecast, label='Predicted')
     plt.xlabel("Date", size=10)
     plt.ylabel("Price", size=10)
+    plt.ylim(bottom=0)
     plt.legend()
     plt.title('Train, Test and Predicted data points using ARIMA', size=20)
     plt.show()
@@ -106,7 +116,7 @@ def arima_model(df_train, df_test):
     
     return forecast, model_accuracy, model_name
     
-
+#Sarima
 def sarima_model(df_train, df_test):
     
     print(cl("\nSARIMA Model Training and Testing\n", attrs=['bold']))
@@ -123,12 +133,15 @@ def sarima_model(df_train, df_test):
     # diagnostic plots of best model
     sarima_model.plot_diagnostics()
     plt.show()
-    
-    # prediction size
-    n = df_test.shape[0]
 
-    # prediction and confidence interval using the model
-    forecast = sarima_model.predict(n_periods=n)
+    # prediction using the model    
+    prediction = []
+    for i in df_test['Price']:
+        predict = sarima_model.predict(n_periods=1)[0]
+        prediction.append(predict)
+        sarima_model.update(i)
+    
+    forecast = pd.Series(prediction, index=df_test.index)
 
     #Data Plot
     plt.plot(df_train['Price'], label='Train')
@@ -136,6 +149,7 @@ def sarima_model(df_train, df_test):
     plt.plot(forecast, label='Predicted')
     plt.xlabel("Date", size=10)
     plt.ylabel("Price", size=10)
+    plt.ylim(bottom=0)
     plt.legend()
     plt.title('Train, Test and Predicted data points using SARIMA', size=20)
     plt.show()
@@ -150,7 +164,7 @@ def sarimax_model(df_train, df_test):
     print(cl("\nSARIMAX Model Training and Testing\n", attrs=['bold']))
     
     model_name = 'SARIMAX Model'
-    sarimax_model = pm.auto_arima(df_train['Price'], trace=True, error_action="ignore", 
+    sarimax_model = pm.auto_arima(df_train['Price'], seasonal=True,  trace=True, error_action="ignore", 
                                  suppress_warnings=True)
     
     
@@ -160,12 +174,15 @@ def sarimax_model(df_train, df_test):
     # diagnostic plots of best model
     sarimax_model.plot_diagnostics()
     plt.show()
-    
-    # prediction size
-    n = df_test.shape[0]
 
-    # prediction and confidence interval using the model
-    forecast = sarimax_model.predict(n_periods=n)
+    # prediction using the model
+    prediction = []
+    for i in df_test['Price']:
+        predict = sarimax_model.predict(n_periods=1)[0]
+        prediction.append(predict)
+        sarimax_model.update(i)
+    
+    forecast = pd.Series(prediction, index=df_test.index)
     
     #Data Plot
     plt.plot(df_train['Price'], label='Train')
@@ -173,6 +190,7 @@ def sarimax_model(df_train, df_test):
     plt.plot(forecast, label='Predicted')
     plt.xlabel("Date", size=10)
     plt.ylabel("Price", size=10)
+    plt.ylim(bottom=0)
     plt.legend()
     plt.title('Train, Test and Predicted data points using SARIMAX', size=20)
     plt.show()
@@ -199,6 +217,7 @@ def holt_winter(df, df_train, df_test):
     df['HWES2_ADD'] = ExponentialSmoothing(df['Price'],trend='add').fit().fittedvalues
     df['HWES2_MUL'] = ExponentialSmoothing(df['Price'],trend='mul').fit().fittedvalues
     df[['Price','HWES2_ADD','HWES2_MUL']].plot(title='Holt Winters graph: Additive Trend and Multiplicative Trend')
+    plt.ylim(bottom=0)
     plt.show()
     
     # Fit the model
@@ -215,6 +234,7 @@ def holt_winter(df, df_train, df_test):
     df_train['Price'].plot(legend=True,label='TRAIN')
     df_test['Price'].plot(legend=True,label='TEST')
     test_predictions.plot(legend=True,label='PREDICTION')
+    plt.ylim(bottom=0)
     plt.title('Train, Test and Predicted data points using Holt Winters Exponential Smoothing', size=20)
     plt.show()
     
@@ -257,6 +277,7 @@ def facebook_prophet(df):
     plt.xlabel("Date", size=10)
     plt.ylabel("Price", size=10)
     plt.legend()
+    plt.ylim(bottom=0)
     plt.title('Train, Test and Predicted data points using Facebook Prophet', size=20)
     plt.show()
     # Facebook Prophet accuracy metric
@@ -265,7 +286,7 @@ def facebook_prophet(df):
     return forecast.yhat, model_accuracy, model_name
     
     
-def get_bollinger_band(prices, rate=7):
+def get_bollinger_band(prices, rate=20):
     print(cl("\n\nBollinger Strategy\n", attrs=['bold']))
     
     sma = get_sma(prices, rate)
@@ -276,6 +297,7 @@ def get_bollinger_band(prices, rate=7):
     plt.plot(prices, label='Closing Prices')
     plt.plot(bollinger_up, label='Bollinger Up', c='g')
     plt.plot(bollinger_down, label='Bollinger Down', c='r')
+    plt.ylim(bottom=0)
     plt.legend()
     plt.xlabel('Date')
     plt.ylabel('Closing Prices')
@@ -288,50 +310,42 @@ def get_bollinger_band(prices, rate=7):
 
 def implement_bb_strategy(prices, bollinger_down,  bollinger_up):
     
-    buy_price = []
-    sell_price = []
+    buy_signal = [] #buy list
+    sell_signal = [] #sell list
+    hold_signal = [] # hold list
     bb_signal = []
-    signal = 0
     
     for i in range(len(prices)):
-        if prices[i-1] > bollinger_down[i-1] and prices[i] < bollinger_down[i]:
-            if signal != 1:
-                buy_price.append(prices[i])
-                sell_price.append(np.nan)
-                signal = 1
-                bb_signal.append(signal)
-            else:
-                buy_price.append(np.nan)
-                sell_price.append(np.nan)
-                bb_signal.append(0)
-        elif prices[i-1] < bollinger_up[i-1] and prices[i] > bollinger_up[i]:
-            if signal != -1:
-                buy_price.append(np.nan)
-                sell_price.append(prices[i])
-                signal = -1
-                bb_signal.append(signal)
-            else:
-                buy_price.append(np.nan)
-                sell_price.append(np.nan)
-                bb_signal.append(0)
+        if prices[i] > bollinger_up[i]: #Then you should sell 
+            buy_signal.append(np.nan)
+            sell_signal.append(prices[i])
+            hold_signal.append(np.nan)
+            bb_signal.append(1)
+        elif prices[i] < bollinger_down[i]: #Then you should buy
+            sell_signal.append(np.nan)
+            buy_signal.append(prices[i])
+            hold_signal.append(np.nan)
+            bb_signal.append(-1)
         else:
-            buy_price.append(np.nan)
-            sell_price.append(np.nan)
+            buy_signal.append(np.nan)
+            sell_signal.append(np.nan)
+            hold_signal.append(prices[i]) #Then you should hold
             bb_signal.append(0)
             
-    plt.plot(prices, label='Closing Prices')
+    plt.plot(prices, label='Predicted Prices')
     plt.plot(bollinger_up, label='Bollinger Up', c='b')
     plt.plot(bollinger_down, label='Bollinger Down', c='orange')
-    plt.scatter(prices.index, buy_price, marker = '^', color = 'green', label = 'Buy', s = 200)
-    plt.scatter(prices.index, sell_price, marker = 'v', color = 'red', label = 'Sell', s = 200)
+    plt.scatter(prices.index, buy_signal, marker = '^', color = 'green', label = 'Buy', s = 200)
+    plt.scatter(prices.index, np.absolute(sell_signal), marker = 'v', color = 'red', label = 'Sell', s = 200)
     plt.legend()
     plt.xlabel('Date')
-    plt.ylabel('Closing Prices')
+    plt.ylabel('Predicted Prices')
+    plt.ylim(bottom=0)
     plt.title('Bollinger Bands Strategy', size=20)
     plt.legend(loc='best')
     plt.show()
             
-    return buy_price, sell_price, bb_signal
+    return buy_signal, sell_signal, bb_signal
     
     
     
@@ -354,9 +368,9 @@ def price_position(df,bb_signal):
     
 
     
-def percentage_backtest(df, position):
+def percentage_backtest(prediction, position):
     
-    df_ret = pd.DataFrame(np.diff(df['Price'])).rename(columns = {0:'returns'})
+    df_ret = pd.DataFrame(np.diff(prediction)).rename(columns = {0:'returns'})
     bb_strategy_ret = []
 
     for i in range(len(df_ret)):
@@ -369,7 +383,7 @@ def percentage_backtest(df, position):
     bb_strategy_ret_df = pd.DataFrame(bb_strategy_ret).rename(columns = {0:'bb_returns'})
 
     investment_value = 100000
-    number_of_stocks = math.floor(investment_value/df['Price'][-1])
+    number_of_stocks = math.floor(investment_value/prediction[-1])
     bb_investment_ret = []
 
     for i in range(len(bb_strategy_ret_df['bb_returns'])):
@@ -413,15 +427,15 @@ def forecasting_report(df):
     print(model_acc_df)
     
     
-    bollinger_down,  bollinger_up = get_bollinger_band(df['Price'])
+    bollinger_down,  bollinger_up = get_bollinger_band(df_test['Price'])
     
-    buy_price, sell_price, bb_signal = implement_bb_strategy(df['Price'], bollinger_down,  bollinger_up)
+    buy_price, sell_price, bb_signal = implement_bb_strategy(sarimax_forecast, bollinger_down,  bollinger_up)
     
-    position = price_position(df['Price'], bb_signal)
+    position = price_position(sarimax_forecast, bb_signal)
     
-    position = pd.DataFrame(position).rename(columns = {0:'bb_position'}).set_index(df.index)
+    position = pd.DataFrame(position).rename(columns = {0:'bb_position'}).set_index(df_test.index)
     
-    percentage_backtest(df, position)
+    percentage_backtest(sarimax_forecast, position)
     
     
     
